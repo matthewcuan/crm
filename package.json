@@ -1,0 +1,18 @@
+{
+  "name": "job-crm",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "typecheck": "npm run typecheck --workspaces",
+    "build": "npm run build -w @crm/web",
+    "dev": "sst dev",
+    "deploy": "sst deploy --stage production"
+  },
+  "devDependencies": {
+    "sst": "^4.17.0",
+    "typescript": "^7.0.2"
+  }
+}
