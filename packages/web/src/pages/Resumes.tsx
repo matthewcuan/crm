@@ -73,7 +73,7 @@ export default function Resumes() {
   return (
     <div className="mx-auto max-w-3xl space-y-6">
       <h2 className="text-lg font-semibold">Resume versions</h2>
-      <p className="-mt-4 text-sm text-slate-500">
+      <p className="-mt-4 text-sm text-neutral-400">
         Keep one version per positioning (e.g. Backend / Security / Full-stack).
         Skills are extracted automatically and used to tailor outreach drafts.
       </p>
@@ -90,7 +90,7 @@ export default function Resumes() {
           <input
             type="file"
             accept="application/pdf,.pdf"
-            className="block w-full text-sm text-slate-600 file:mr-3 file:rounded-md file:border-0 file:bg-slate-900 file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-white hover:file:bg-slate-700"
+            className="block w-full text-sm text-neutral-400 file:mr-3 file:rounded-md file:border-0 file:bg-neutral-100 file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-neutral-900 hover:file:bg-white"
             onChange={(e) => setFile(e.target.files?.[0] ?? null)}
           />
         </Field>
@@ -105,7 +105,7 @@ export default function Resumes() {
           </Field>
         )}
         {error && (
-          <p className="rounded-md bg-red-50 p-2 text-sm text-red-700">
+          <p className="rounded-md bg-red-500/10 p-2 text-sm text-red-400">
             {error}
           </p>
         )}
@@ -133,12 +133,12 @@ export default function Resumes() {
               <div className="flex items-center gap-2">
                 <span className="font-medium">{r.label}</span>
                 {r.isDefault && <Badge tone="green">default</Badge>}
-                <span className="ml-auto text-xs text-slate-400">
+                <span className="ml-auto text-xs text-neutral-500">
                   {r.fileName ?? "pasted text"} · {fmtDate(r.createdAt)}
                 </span>
               </div>
               {r.summary && (
-                <p className="text-sm italic text-slate-600">{r.summary}</p>
+                <p className="text-sm italic text-neutral-400">{r.summary}</p>
               )}
               <div className="flex flex-wrap gap-1">
                 {r.skills.map((s) => (

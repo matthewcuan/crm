@@ -195,7 +195,7 @@ export default function ApplicationDetail() {
         <div className="flex flex-wrap items-start gap-3">
           <div className="min-w-0 flex-1">
             <h2 className="text-xl font-semibold">{app.role}</h2>
-            <div className="text-slate-500">
+            <div className="text-neutral-400">
               {app.company}
               {app.location ? ` · ${app.location}` : ""}
               {app.salary ? ` · ${app.salary}` : ""}
@@ -205,7 +205,7 @@ export default function ApplicationDetail() {
                 href={app.jobUrl}
                 target="_blank"
                 rel="noreferrer"
-                className="text-sm text-blue-600 hover:underline"
+                className="text-sm text-blue-400 hover:underline"
               >
                 View posting ↗
               </a>
@@ -256,7 +256,7 @@ export default function ApplicationDetail() {
           </div>
         )}
 
-        <div className="text-xs text-slate-400">
+        <div className="text-xs text-neutral-500">
           saved {fmtDate(app.dateSaved)}
           {app.dateApplied ? ` · applied ${fmtDate(app.dateApplied)}` : ""}
           {app.source ? ` · via ${app.source}` : ""}
@@ -325,14 +325,14 @@ export default function ApplicationDetail() {
             </Select>
           </Field>
         </div>
-        <p className="text-xs text-slate-400">
+        <p className="text-xs text-neutral-500">
           {TEMPLATES.find((t) => t.key === templateKey)?.description}
         </p>
         <Button onClick={() => generate.mutate()} disabled={generate.isPending}>
           {generate.isPending ? "Drafting…" : "Generate draft"}
         </Button>
         {generate.isError && (
-          <p className="text-sm text-red-600">
+          <p className="text-sm text-red-400">
             {generate.error instanceof Error
               ? generate.error.message
               : "Draft failed"}
@@ -352,7 +352,7 @@ export default function ApplicationDetail() {
               <Button onClick={() => openLogModal(draft)}>
                 Log as sent…
               </Button>
-              <span className="ml-auto text-xs text-slate-400">
+              <span className="ml-auto text-xs text-neutral-500">
                 {draft.length} chars
               </span>
             </div>
@@ -372,7 +372,7 @@ export default function ApplicationDetail() {
           </Button>
         </div>
         {showContactForm && (
-          <div className="space-y-3 rounded-md bg-slate-50 p-3">
+          <div className="space-y-3 rounded-md bg-neutral-800/50 p-3">
             <div className="grid gap-3 sm:grid-cols-2">
               <Field label="Name *">
                 <Input
@@ -428,23 +428,23 @@ export default function ApplicationDetail() {
           </div>
         )}
         {contacts.length === 0 ? (
-          <p className="text-sm text-slate-500">
+          <p className="text-sm text-neutral-400">
             No contacts yet. Find the recruiter or an engineer on the team and
             add them here — messages to people beat applications to portals.
           </p>
         ) : (
-          <ul className="divide-y divide-slate-100">
+          <ul className="divide-y divide-neutral-800">
             {contacts.map((ct) => (
               <li key={ct.id} className="flex items-center gap-3 py-2">
                 <div className="min-w-0 flex-1">
                   <span className="font-medium">{ct.name}</span>{" "}
-                  <span className="text-xs text-slate-500">
+                  <span className="text-xs text-neutral-400">
                     {ct.type.replace("_", " ").toLowerCase()}
                   </span>
                   <div className="flex gap-3 text-xs">
                     {ct.linkedinUrl && (
                       <a
-                        className="text-blue-600 hover:underline"
+                        className="text-blue-400 hover:underline"
                         href={ct.linkedinUrl}
                         target="_blank"
                         rel="noreferrer"
@@ -453,7 +453,7 @@ export default function ApplicationDetail() {
                       </a>
                     )}
                     {ct.email && (
-                      <span className="text-slate-500">{ct.email}</span>
+                      <span className="text-neutral-400">{ct.email}</span>
                     )}
                   </div>
                 </div>
@@ -478,7 +478,7 @@ export default function ApplicationDetail() {
           </Button>
         </div>
         {interactions.length === 0 ? (
-          <p className="text-sm text-slate-500">
+          <p className="text-sm text-neutral-400">
             Nothing logged yet. Generate a draft above, send it manually, then
             "Log as sent" — the follow-up reminder is automatic.
           </p>
@@ -487,9 +487,9 @@ export default function ApplicationDetail() {
             {interactions.map((it: Interaction) => (
               <li
                 key={it.id}
-                className="rounded-md border border-slate-100 p-3"
+                className="rounded-md border border-neutral-800 p-3"
               >
-                <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500">
+                <div className="flex flex-wrap items-center gap-2 text-xs text-neutral-400">
                   <Badge tone={it.direction === "SENT" ? "blue" : "green"}>
                     {it.direction === "SENT" ? "→ sent" : "← received"}
                   </Badge>
@@ -541,18 +541,18 @@ export default function ApplicationDetail() {
 
       {/* ---------- job description + danger zone ---------- */}
       {app.jobText && (
-        <details className="rounded-lg border border-slate-200 bg-white p-4">
+        <details className="rounded-lg border border-neutral-800 bg-neutral-900 p-4">
           <summary className="cursor-pointer text-sm font-medium">
             Job description
           </summary>
-          <p className="mt-2 whitespace-pre-wrap text-sm text-slate-600">
+          <p className="mt-2 whitespace-pre-wrap text-sm text-neutral-400">
             {app.jobText}
           </p>
         </details>
       )}
 
       <div className="flex justify-between pb-8">
-        <Link to="/applications" className="text-sm text-slate-500 underline">
+        <Link to="/applications" className="text-sm text-neutral-400 underline">
           ← Back to board
         </Link>
         <Button
@@ -641,7 +641,7 @@ export default function ApplicationDetail() {
             </Field>
             {log.direction === "SENT" &&
               (app.status === "SAVED" || app.status === "APPLIED") && (
-                <label className="flex items-center gap-2 text-sm text-slate-600">
+                <label className="flex items-center gap-2 text-sm text-neutral-400">
                   <input
                     type="checkbox"
                     checked={log.updateStatus}

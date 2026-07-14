@@ -73,7 +73,7 @@ export default function Applications() {
             const col = apps.filter((a) => a.status === status);
             return (
               <div key={status} className="w-64 shrink-0">
-                <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-neutral-400">
                   {STATUS_LABEL[status]} ({col.length})
                 </div>
                 <div className="space-y-2">
@@ -83,8 +83,8 @@ export default function Applications() {
                         <div className="text-sm font-medium hover:underline">
                           {a.role}
                         </div>
-                        <div className="text-xs text-slate-500">{a.company}</div>
-                        <div className="mt-1 text-[11px] text-slate-400">
+                        <div className="text-xs text-neutral-400">{a.company}</div>
+                        <div className="mt-1 text-[11px] text-neutral-500">
                           saved {fmtDate(a.dateSaved)}
                         </div>
                       </Link>
@@ -115,7 +115,7 @@ export default function Applications() {
 
       <div>
         <button
-          className="text-sm text-slate-500 underline"
+          className="text-sm text-neutral-400 underline"
           onClick={() => setShowArchived((v) => !v)}
         >
           {showArchived ? "Hide" : "Show"} archived ({archived.length})
@@ -126,7 +126,7 @@ export default function Applications() {
               <Link key={a.id} to={`/applications/${a.id}`}>
                 <Card className="!p-3 opacity-70">
                   <div className="text-sm font-medium">{a.role}</div>
-                  <div className="text-xs text-slate-500">
+                  <div className="text-xs text-neutral-400">
                     {a.company} · {STATUS_LABEL[a.status]}
                   </div>
                 </Card>

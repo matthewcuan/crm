@@ -9,10 +9,10 @@ import type {
 type Variant = "primary" | "secondary" | "danger" | "ghost";
 
 const BUTTON_STYLES: Record<Variant, string> = {
-  primary: "bg-slate-900 text-white hover:bg-slate-700",
-  secondary: "border border-slate-300 bg-white text-slate-700 hover:bg-slate-50",
+  primary: "bg-neutral-100 text-neutral-900 hover:bg-white",
+  secondary: "border border-neutral-700 text-neutral-300 hover:bg-neutral-800",
   danger: "bg-red-600 text-white hover:bg-red-500",
-  ghost: "text-slate-500 hover:text-slate-900",
+  ghost: "text-neutral-400 hover:text-neutral-100",
 };
 
 export function Button({
@@ -28,40 +28,28 @@ export function Button({
   );
 }
 
+const CONTROL =
+  "w-full rounded-md border border-neutral-700 bg-neutral-900 px-3 py-1.5 text-sm text-neutral-100 placeholder:text-neutral-500 focus:border-neutral-400 focus:outline-none";
+
 export function Input({
   className = "",
   ...props
 }: InputHTMLAttributes<HTMLInputElement>) {
-  return (
-    <input
-      className={`w-full rounded-md border border-slate-300 px-3 py-1.5 text-sm focus:border-slate-500 focus:outline-none ${className}`}
-      {...props}
-    />
-  );
+  return <input className={`${CONTROL} ${className}`} {...props} />;
 }
 
 export function Textarea({
   className = "",
   ...props
 }: TextareaHTMLAttributes<HTMLTextAreaElement>) {
-  return (
-    <textarea
-      className={`w-full rounded-md border border-slate-300 px-3 py-1.5 text-sm focus:border-slate-500 focus:outline-none ${className}`}
-      {...props}
-    />
-  );
+  return <textarea className={`${CONTROL} ${className}`} {...props} />;
 }
 
 export function Select({
   className = "",
   ...props
 }: SelectHTMLAttributes<HTMLSelectElement>) {
-  return (
-    <select
-      className={`w-full rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm focus:border-slate-500 focus:outline-none ${className}`}
-      {...props}
-    />
-  );
+  return <select className={`${CONTROL} ${className}`} {...props} />;
 }
 
 export function Field({
@@ -73,7 +61,7 @@ export function Field({
 }) {
   return (
     <label className="block">
-      <span className="mb-1 block text-xs font-medium text-slate-500">
+      <span className="mb-1 block text-xs font-medium text-neutral-400">
         {label}
       </span>
       {children}
@@ -90,7 +78,7 @@ export function Card({
 }) {
   return (
     <div
-      className={`rounded-lg border border-slate-200 bg-white p-4 shadow-sm ${className}`}
+      className={`rounded-lg border border-neutral-800 bg-neutral-900 p-4 ${className}`}
     >
       {children}
     </div>
@@ -98,11 +86,11 @@ export function Card({
 }
 
 const BADGE_TONES: Record<string, string> = {
-  slate: "bg-slate-100 text-slate-700",
-  green: "bg-green-100 text-green-700",
-  amber: "bg-amber-100 text-amber-700",
-  red: "bg-red-100 text-red-700",
-  blue: "bg-blue-100 text-blue-700",
+  slate: "bg-neutral-800 text-neutral-300",
+  green: "bg-green-500/15 text-green-300",
+  amber: "bg-amber-500/15 text-amber-300",
+  red: "bg-red-500/15 text-red-300",
+  blue: "bg-blue-500/15 text-blue-300",
 };
 
 export function Badge({
@@ -124,14 +112,14 @@ export function Badge({
 export function Spinner() {
   return (
     <div className="flex justify-center py-8">
-      <div className="h-6 w-6 animate-spin rounded-full border-2 border-slate-300 border-t-slate-900" />
+      <div className="h-6 w-6 animate-spin rounded-full border-2 border-neutral-700 border-t-neutral-200" />
     </div>
   );
 }
 
 export function EmptyState({ children }: { children: ReactNode }) {
   return (
-    <div className="rounded-lg border border-dashed border-slate-300 p-8 text-center text-sm text-slate-500">
+    <div className="rounded-lg border border-dashed border-neutral-800 p-8 text-center text-sm text-neutral-400">
       {children}
     </div>
   );
@@ -148,17 +136,17 @@ export function Modal({
 }) {
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
       onClick={onClose}
     >
       <div
-        className="w-full max-w-lg rounded-lg bg-white p-5 shadow-xl"
+        className="w-full max-w-lg rounded-lg border border-neutral-800 bg-neutral-900 p-5"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="mb-4 flex items-center justify-between">
           <h3 className="font-semibold">{title}</h3>
           <button
-            className="text-slate-400 hover:text-slate-700"
+            className="text-neutral-500 hover:text-neutral-200"
             onClick={onClose}
           >
             ✕

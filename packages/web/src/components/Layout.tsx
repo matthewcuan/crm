@@ -13,20 +13,21 @@ export function Layout() {
 
   return (
     <div className="min-h-screen">
-      <header className="border-b border-slate-200 bg-white">
-        <div className="mx-auto flex max-w-6xl items-center gap-4 px-4 py-3">
-          <span className="text-lg font-bold">🎯 JobCRM</span>
-          <nav className="flex gap-1">
+      {/* Wraps to two rows on narrow screens: logo + sign-out on top, tabs below */}
+      <header className="border-b border-neutral-800">
+        <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-x-4 gap-y-2 px-4 py-3">
+          <span className="order-1 font-semibold">JobCRM</span>
+          <nav className="order-3 flex w-full gap-1 overflow-x-auto sm:order-2 sm:w-auto">
             {TABS.map((t) => (
               <NavLink
                 key={t.to}
                 to={t.to}
                 end={t.to === "/"}
                 className={({ isActive }) =>
-                  `rounded-md px-3 py-1.5 text-sm font-medium ${
+                  `whitespace-nowrap rounded-md px-3 py-1.5 text-sm font-medium ${
                     isActive
-                      ? "bg-slate-900 text-white"
-                      : "text-slate-600 hover:bg-slate-100"
+                      ? "bg-neutral-800 text-white"
+                      : "text-neutral-400 hover:text-neutral-100"
                   }`
                 }
               >
@@ -35,7 +36,7 @@ export function Layout() {
             ))}
           </nav>
           <button
-            className="ml-auto text-sm text-slate-500 hover:text-slate-900"
+            className="order-2 ml-auto text-sm text-neutral-400 hover:text-neutral-100 sm:order-3"
             onClick={() => {
               clearToken();
               navigate("/login");

@@ -1,1 +1,5 @@
 @import "tailwindcss";
+
+:root {
+  color-scheme: dark; /* native controls (date picker, checkbox, scrollbars) render dark */
+}

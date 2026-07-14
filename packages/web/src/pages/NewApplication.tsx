@@ -176,7 +176,7 @@ export default function NewApplication() {
         )}
 
         {notice && (
-          <p className="rounded-md bg-amber-50 p-2 text-sm text-amber-800">
+          <p className="rounded-md bg-amber-500/10 p-2 text-sm text-amber-300">
             {notice}
           </p>
         )}

@@ -39,7 +39,7 @@ export default function Login() {
         },
       });
       google.accounts.id.renderButton(buttonRef.current, {
-        theme: "outline",
+        theme: "filled_black",
         size: "large",
         width: 280,
       });
@@ -52,13 +52,13 @@ export default function Login() {
 
   return (
     <div className="flex min-h-screen items-center justify-center">
-      <div className="w-80 rounded-lg border border-slate-200 bg-white p-8 text-center shadow-sm">
-        <h1 className="text-xl font-bold">🎯 JobCRM</h1>
-        <p className="mb-6 mt-1 text-sm text-slate-500">
+      <div className="w-80 rounded-lg border border-neutral-800 bg-neutral-900 p-8 text-center">
+        <h1 className="text-xl font-bold">JobCRM</h1>
+        <p className="mb-6 mt-1 text-sm text-neutral-400">
           Your job search, organized.
         </p>
         <div ref={buttonRef} className="flex justify-center" />
-        {error && <p className="mt-4 text-sm text-red-600">{error}</p>}
+        {error && <p className="mt-4 text-sm text-red-400">{error}</p>}
       </div>
     </div>
   );

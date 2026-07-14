@@ -59,21 +59,21 @@ export default function Dashboard() {
                 <div className="min-w-0 flex-1">
                   <div className="font-medium">
                     {interaction.contactName ?? "Someone"}{" "}
-                    <span className="font-normal text-slate-500">
+                    <span className="font-normal text-neutral-400">
                       ·{" "}
                       {application
                         ? `${application.role} @ ${application.company}`
                         : "unknown role"}
                     </span>
                   </div>
-                  <div className="mt-0.5 truncate text-sm text-slate-500">
+                  <div className="mt-0.5 truncate text-sm text-neutral-400">
                     {interaction.body}
                   </div>
-                  <div className="mt-0.5 text-xs text-slate-400">
+                  <div className="mt-0.5 text-xs text-neutral-500">
                     due {interaction.nextFollowUpAt}
                     {interaction.nextFollowUpAt &&
                       interaction.nextFollowUpAt < today && (
-                        <span className="font-medium text-red-500">
+                        <span className="font-medium text-red-400">
                           {" "}
                           · overdue
                         </span>
@@ -136,9 +136,9 @@ export default function Dashboard() {
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {saved.map((a) => (
               <Link key={a.id} to={`/applications/${a.id}`}>
-                <Card className="transition-colors hover:border-slate-400">
+                <Card className="transition-colors hover:border-neutral-600">
                   <div className="font-medium">{a.role}</div>
-                  <div className="text-sm text-slate-500">{a.company}</div>
+                  <div className="text-sm text-neutral-400">{a.company}</div>
                 </Card>
               </Link>
             ))}
