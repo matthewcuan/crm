@@ -59,35 +59,46 @@ packages/
 ## Prerequisites
 
 - **Node 22** (`nvm use 22`)
-- **AWS credentials** with admin-ish access: `aws configure` or environment
-  variables. (This is the one thing `sst deploy` can't do for you.)
+- **AWS access** with admin-level permissions — see `scripts/` below
 - **Google OAuth client** — [console.cloud.google.com](https://console.cloud.google.com)
   → APIs & Services → Credentials → Create OAuth client ID → *Web application*.
   Add `http://localhost:5173` to "Authorized JavaScript origins" now; you'll
-  add the CloudFront URL after the first deploy.
+  add the CloudFront URL after the first deploy. (Not scriptable — Google has
+  no public API for creating external OAuth clients.)
 - **Anthropic API key** — [platform.claude.com](https://platform.claude.com)
 
-## First deploy
+## Deploy (scripted)
 
 ```sh
 npm install
 
-# secrets (stored in SSM Parameter Store, injected into the Lambdas)
-npx sst secret set GoogleClientId  <your-client-id>.apps.googleusercontent.com
-npx sst secret set JwtSecret       "$(openssl rand -base64 48)"
-npx sst secret set AnthropicApiKey sk-ant-...
+# AWS access — pick ONE:
+#  A) (preferred, no stored keys) AWS console → IAM → Roles →
+#     AmazonSSMManagedInstanceCore → Attach policies → AdministratorAccess,
+#     then verify with:
+./scripts/2-setup-credentials.sh
+#  B) paste scripts/1-bootstrap-iam-cloudshell.sh into AWS CloudShell,
+#     then run ./scripts/2-setup-credentials.sh and enter the printed keys.
 
-npx sst deploy --stage production
+# secrets + deploy + smoke checks (prompts for Google client ID / Anthropic key)
+./scripts/3-deploy.sh
+
+# optionally fire the reminder email right now instead of waiting for the cron
+./scripts/4-test-reminder.sh
 ```
 
-The deploy prints two URLs: `web` (CloudFront) and `api` (API Gateway). Then:
+After `3-deploy.sh`, two manual clicks remain (it reminds you):
 
-1. **SES**: AWS emails a verification link to your address on first deploy —
-   click it, or the reminder email can't send. (Sandbox mode is fine forever:
-   you only ever email yourself.)
-2. **Google**: add the `web` CloudFront URL to the OAuth client's
+1. **SES**: click the verification link AWS emails you — without it the
+   reminder email can't send. (Sandbox mode is fine forever: you only ever
+   email yourself.)
+2. **Google**: add the printed `web` CloudFront URL to the OAuth client's
    "Authorized JavaScript origins".
-3. Open the web URL, sign in with Google, add a resume, paste a job link. Done.
+
+Then open the web URL, sign in with Google, add a resume, paste a job link.
+Manual equivalent of the scripts: `npx sst secret set <Name> <value> --stage
+production` for `GoogleClientId` / `JwtSecret` / `AnthropicApiKey`, then
+`npx sst deploy --stage production`.
 
 ## Development
 
