@@ -30,6 +30,11 @@ app.onError((err, c) => {
   );
 });
 
+// API Gateway's $default route forwards even CORS preflights to us — answer
+// them before the auth gate (a non-2xx preflight makes the browser abort the
+// real request with a network error). API Gateway appends the CORS headers.
+app.options("*", (c) => c.body(null, 204));
+
 // ---------- auth (the only public route) ----------
 
 app.post("/auth/google", async (c) => {
