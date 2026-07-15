@@ -1,140 +1,143 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { STATUSES, type Application, type Status } from "@crm/core/types";
-import {
-  Button,
-  Card,
-  EmptyState,
-  Select,
-  Spinner,
-} from "../components/ui";
+import { EmptyState, Spinner, StatusDot } from "../components/ui";
 import { api } from "../lib/api";
 import { fmtDate } from "../lib/format";
-
-const ACTIVE: Status[] = [
-  "SAVED",
-  "APPLIED",
-  "MESSAGED",
-  "FOLLOWED_UP",
-  "SCREEN",
-  "INTERVIEW",
-  "OFFER",
-];
-const ARCHIVED: Status[] = ["REJECTED", "CLOSED"];
-
-export const STATUS_LABEL: Record<Status, string> = {
-  SAVED: "Saved",
-  APPLIED: "Applied",
-  MESSAGED: "Messaged",
-  FOLLOWED_UP: "Followed up",
-  SCREEN: "Screen",
-  INTERVIEW: "Interview",
-  OFFER: "Offer",
-  REJECTED: "Rejected",
-  CLOSED: "Closed",
-};
+import { STATUS_LABEL } from "../lib/status";
 
 export default function Applications() {
-  const qc = useQueryClient();
-  const [showArchived, setShowArchived] = useState(false);
+  const [collapsed, setCollapsed] = useState<Partial<Record<Status, boolean>>>(
+    {},
+  );
 
   const { data, isLoading } = useQuery({
     queryKey: ["applications"],
     queryFn: () => api.get<Application[]>("/applications"),
   });
 
-  const move = useMutation({
-    mutationFn: ({ id, status }: { id: string; status: Status }) =>
-      api.patch(`/applications/${id}`, { status }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["applications"] }),
-  });
-
   if (isLoading) return <Spinner />;
   const apps = data ?? [];
-  const archived = apps.filter((a) => ARCHIVED.includes(a.status));
+  const active = apps.filter(
+    (a) => a.status !== "REJECTED" && a.status !== "CLOSED",
+  ).length;
+
+  // One section per status that has applications, in pipeline order
+  const sections = STATUSES.map((status) => ({
+    status,
+    items: apps.filter((a) => a.status === status),
+  })).filter((s) => s.items.length > 0);
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h2 className="text-lg font-semibold">Applications</h2>
-        <Link to="/applications/new">
-          <Button>+ Add job</Button>
+    <div>
+      <div className="flex items-end justify-between pb-3">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">Applications</h1>
+          <p className="mt-0.5 text-[13px] text-neutral-500">
+            {apps.length} tracked · {active} active
+          </p>
+        </div>
+        <Link
+          to="/applications/new"
+          title="Add a job"
+          className="grid h-9 w-9 place-items-center rounded-full bg-neutral-100 pb-0.5 text-xl leading-none text-neutral-900 hover:bg-white"
+        >
+          +
         </Link>
       </div>
 
       {apps.length === 0 ? (
-        <EmptyState>
-          No applications yet. Paste a job link to get started.
+        <EmptyState title="Nothing tracked yet">
+          Paste a job link to get started.
         </EmptyState>
       ) : (
-        <div className="flex gap-3 overflow-x-auto pb-2">
-          {ACTIVE.map((status) => {
-            const col = apps.filter((a) => a.status === status);
-            return (
-              <div key={status} className="w-64 shrink-0">
-                <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-neutral-400">
-                  {STATUS_LABEL[status]} ({col.length})
-                </div>
-                <div className="space-y-2">
-                  {col.map((a) => (
-                    <Card key={a.id} className="!p-3">
-                      <Link to={`/applications/${a.id}`} className="block">
-                        <div className="text-sm font-medium hover:underline">
-                          {a.role}
-                        </div>
-                        <div className="text-xs text-neutral-400">{a.company}</div>
-                        <div className="mt-1 text-[11px] text-neutral-500">
-                          saved {fmtDate(a.dateSaved)}
-                        </div>
-                      </Link>
-                      <Select
-                        className="mt-2 !py-1 !text-xs"
-                        value={a.status}
-                        onChange={(e) =>
-                          move.mutate({
-                            id: a.id,
-                            status: e.target.value as Status,
-                          })
-                        }
-                      >
-                        {STATUSES.map((s) => (
-                          <option key={s} value={s}>
-                            {STATUS_LABEL[s]}
-                          </option>
-                        ))}
-                      </Select>
-                    </Card>
-                  ))}
-                </div>
+        <>
+          {/* status summary chips */}
+          <div className="flex gap-2 overflow-x-auto pb-4 [scrollbar-width:none]">
+            {sections.map(({ status, items }) => (
+              <div
+                key={status}
+                className="flex flex-none items-center gap-2 rounded-full border border-neutral-800 bg-neutral-900 px-3 py-1.5"
+              >
+                <StatusDot status={status} />
+                <span className="whitespace-nowrap text-xs text-neutral-400">
+                  {STATUS_LABEL[status]}
+                </span>
+                <span className="text-xs font-semibold tabular-nums">
+                  {items.length}
+                </span>
               </div>
-            );
-          })}
-        </div>
-      )}
-
-      <div>
-        <button
-          className="text-sm text-neutral-400 underline"
-          onClick={() => setShowArchived((v) => !v)}
-        >
-          {showArchived ? "Hide" : "Show"} archived ({archived.length})
-        </button>
-        {showArchived && archived.length > 0 && (
-          <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-            {archived.map((a) => (
-              <Link key={a.id} to={`/applications/${a.id}`}>
-                <Card className="!p-3 opacity-70">
-                  <div className="text-sm font-medium">{a.role}</div>
-                  <div className="text-xs text-neutral-400">
-                    {a.company} · {STATUS_LABEL[a.status]}
-                  </div>
-                </Card>
-              </Link>
             ))}
           </div>
-        )}
-      </div>
+
+          {/* collapsible sections */}
+          {sections.map(({ status, items }) => (
+            <section key={status}>
+              <button
+                className="flex w-full items-center gap-2.5 py-2.5 text-left"
+                onClick={() =>
+                  setCollapsed((c) => ({ ...c, [status]: !c[status] }))
+                }
+              >
+                <StatusDot status={status} />
+                <span className="text-[13px] font-semibold text-neutral-200">
+                  {STATUS_LABEL[status]}
+                </span>
+                <span className="text-xs text-neutral-500 tabular-nums">
+                  {items.length}
+                </span>
+                <span
+                  className={`ml-auto text-[10px] text-neutral-600 transition-transform ${
+                    collapsed[status] ? "-rotate-90" : ""
+                  }`}
+                >
+                  ▼
+                </span>
+              </button>
+              {!collapsed[status] && (
+                <div className="flex flex-col gap-2 pb-2">
+                  {items.map((a) => (
+                    <Link
+                      key={a.id}
+                      to={`/applications/${a.id}`}
+                      className="rounded-[14px] border border-neutral-800 bg-neutral-900 px-3.5 py-3 hover:border-neutral-600"
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0">
+                          <div className="text-[15px] font-semibold tracking-tight">
+                            {a.role}
+                          </div>
+                          <div className="mt-0.5 text-[13px] text-neutral-400">
+                            {a.company}
+                          </div>
+                        </div>
+                        <span className="text-[17px] leading-none text-neutral-600">
+                          ›
+                        </span>
+                      </div>
+                      <div className="mt-2.5 flex items-center gap-2 text-xs">
+                        {a.salary && (
+                          <>
+                            <span className="text-neutral-300 tabular-nums">
+                              {a.salary}
+                            </span>
+                            <span className="h-[3px] w-[3px] flex-none rounded-full bg-neutral-700" />
+                          </>
+                        )}
+                        <span className="text-neutral-500">
+                          {a.status === "SAVED" ? "saved" : "updated"}{" "}
+                          {fmtDate(a.dateApplied ?? a.dateSaved)}
+                        </span>
+                      </div>
+                    </Link>
+                  ))}
+                </div>
+              )}
+            </section>
+          ))}
+        </>
+      )}
     </div>
   );
 }

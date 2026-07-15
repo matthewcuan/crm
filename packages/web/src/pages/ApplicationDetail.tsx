@@ -28,7 +28,7 @@ import {
 } from "../components/ui";
 import { api } from "../lib/api";
 import { fmtDate, localToday } from "../lib/format";
-import { STATUS_LABEL } from "./Applications";
+import { STATUS_LABEL } from "../lib/status";
 
 const EMPTY_CONTACT = {
   name: "",

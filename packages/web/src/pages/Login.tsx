@@ -53,7 +53,10 @@ export default function Login() {
   return (
     <div className="flex min-h-screen items-center justify-center">
       <div className="w-80 rounded-lg border border-neutral-800 bg-neutral-900 p-8 text-center">
-        <h1 className="text-xl font-bold">JobCRM</h1>
+        <div className="mx-auto mb-2 grid h-8 w-8 place-items-center rounded-lg bg-neutral-100 text-sm font-bold text-neutral-900">
+          J
+        </div>
+        <h1 className="text-xl font-bold tracking-tight">JobCRM</h1>
         <p className="mb-6 mt-1 text-sm text-neutral-400">
           Your job search, organized.
         </p>
