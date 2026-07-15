@@ -13,12 +13,16 @@ export async function handler() {
   const tz = process.env.TIMEZONE ?? "America/Los_Angeles";
   const today = todayInTz(tz);
   const appUrl = (process.env.APP_URL ?? "").replace(/\/$/, "");
-  const sender = process.env.ALLOWED_EMAIL!;
 
   const users = (process.env.ALLOWED_EMAILS ?? "")
     .split(",")
     .map((e) => e.trim().toLowerCase())
     .filter(Boolean);
+  const sender = users[0]; // first allowlist entry is the verified SES sender
+  if (!sender) {
+    console.log("No users configured — skipping");
+    return;
+  }
 
   for (const user of users) {
     const [due, applications] = await Promise.all([

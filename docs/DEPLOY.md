@@ -50,6 +50,23 @@ npx sst secret set <Name> <value> --stage production   # then redeploy
 Gotcha: secrets are **per-stage** — without `--stage production` they land on
 your personal dev stage and production won't see them.
 
+## Adding a user
+
+Each allowed email gets its own isolated workspace. The allowlist lives in
+the `AllowedEmails` secret (comma-separated; the first entry is the SES
+sender), not in the repo — emails are PII.
+
+```sh
+npx sst secret set AllowedEmails "owner@gmail.com,new-user@gmail.com" --stage production
+npx sst deploy --stage production
+```
+
+Plus two one-time steps for the new user:
+1. Add them as a **test user** on the Google OAuth consent screen.
+2. Verify their address in **SES** (console → Amazon SES → Identities →
+   Create identity → their email; they click the link AWS sends) so the
+   daily reminder digest can reach them while SES is in sandbox.
+
 ## Live URLs
 
 Printed at the end of every deploy, also in `.sst/outputs.json`.

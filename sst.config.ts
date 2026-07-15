@@ -20,16 +20,19 @@ export default $config({
     };
   },
   async run() {
-    const ALLOWED_EMAIL = "owner@example.com"; // SES sender + reminder recipient
-    // Everyone who may sign in. NOTE: this is a single-tenant app — every
-    // allowed email sees and edits the SAME data.
-    const ALLOWED_EMAILS = [ALLOWED_EMAIL, "user2@example.com"];
     const TIMEZONE = "America/Los_Angeles"; // used for "due today" boundaries
 
     // Secrets — set once per stage with: npx sst secret set <Name> <value>
     const googleClientId = new sst.Secret("GoogleClientId");
     const jwtSecret = new sst.Secret("JwtSecret");
     const anthropicApiKey = new sst.Secret("AnthropicApiKey");
+    // Comma-separated sign-in allowlist (kept out of the repo — it's PII).
+    // Each entry gets an isolated workspace; the FIRST entry doubles as the
+    // SES sender. npx sst secret set AllowedEmails "you@x.com,other@y.com"
+    const allowedEmails = new sst.Secret("AllowedEmails");
+    const senderEmail = allowedEmails.value.apply(
+      (v) => v.split(",")[0]!.trim().toLowerCase(),
+    );
 
     // Single-table DynamoDB design: base table + 2 GSIs.
     //   gsi1: APPLIST / <status>#<dateSaved>  → list/board of all applications
@@ -56,16 +59,10 @@ export default $config({
     // Resume PDF uploads (browser PUTs via presigned URLs)
     const bucket = new sst.aws.Bucket("Resumes");
 
-    // SES identities: the owner (sender) plus every reminder recipient must
-    // be verified while SES is in sandbox — each address gets a one-time
-    // verification email on first deploy. Index 0 keeps the original "Email"
-    // component name so the existing identity isn't replaced.
-    const emailIdentities = ALLOWED_EMAILS.map(
-      (address, i) =>
-        new sst.aws.Email(i === 0 ? "Email" : `Email${i + 1}`, {
-          sender: address,
-        }),
-    );
+    // SES sender identity. While SES is in sandbox, reminder RECIPIENTS must
+    // also be verified — one-time per new user, via SES console/CLI (see
+    // docs/DEPLOY.md). Identities created by earlier deploys are retained.
+    const email = new sst.aws.Email("Email", { sender: senderEmail });
 
     const environment = {
       TABLE_NAME: table.name,
@@ -73,7 +70,7 @@ export default $config({
       GOOGLE_CLIENT_ID: googleClientId.value,
       JWT_SECRET: jwtSecret.value,
       ANTHROPIC_API_KEY: anthropicApiKey.value,
-      ALLOWED_EMAILS: ALLOWED_EMAILS.join(","),
+      ALLOWED_EMAILS: allowedEmails.value,
       TIMEZONE,
     };
 
@@ -104,11 +101,10 @@ export default $config({
       schedule: "cron(0 15 * * ? *)",
       function: {
         handler: "packages/functions/src/reminders.handler",
-        link: [table, ...emailIdentities],
+        link: [table, email],
         environment: {
           TABLE_NAME: table.name,
-          ALLOWED_EMAIL, // sender identity
-          ALLOWED_EMAILS: ALLOWED_EMAILS.join(","), // one digest per user
+          ALLOWED_EMAILS: allowedEmails.value, // one digest per user; [0] = sender
           TIMEZONE,
           APP_URL: web.url,
         },

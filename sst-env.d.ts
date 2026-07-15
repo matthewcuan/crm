@@ -6,6 +6,10 @@
 
 declare module "sst" {
   export interface Resource {
+    "AllowedEmails": {
+      "type": "sst.sst.Secret"
+      "value": string
+    }
     "AnthropicApiKey": {
       "type": "sst.sst.Secret"
       "value": string

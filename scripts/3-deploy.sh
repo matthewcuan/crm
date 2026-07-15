@@ -44,6 +44,7 @@ ensure_secret() {
 
 ensure_secret GoogleClientId "Google OAuth Client ID (...apps.googleusercontent.com)" "" "${GOOGLE_CLIENT_ID:-}"
 ensure_secret AnthropicApiKey "Anthropic API key (sk-ant-...)" hidden "${ANTHROPIC_API_KEY:-}"
+ensure_secret AllowedEmails "Comma-separated sign-in allowlist (first entry = SES sender)" "" "${ALLOWED_EMAILS:-}"
 if ! echo "$SECRET_LIST" | grep -q JwtSecret; then
   npx sst secret set JwtSecret "$(openssl rand -base64 48)" --stage "$STAGE"
   echo "Generated a random JwtSecret."
