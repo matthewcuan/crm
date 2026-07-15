@@ -1,5 +1,12 @@
 @import "tailwindcss";
 
-:root {
-  color-scheme: dark; /* native controls (date picker, checkbox, scrollbars) render dark */
+/* Dark-render native controls (date picker, checkboxes, select dropdowns).
+ * Deliberately NOT set on :root — a document-level dark color-scheme makes
+ * the browser paint cross-origin iframes (the Google Sign-In button) with an
+ * opaque white background instead of leaving them transparent. */
+input,
+textarea,
+select,
+button {
+  color-scheme: dark;
 }
