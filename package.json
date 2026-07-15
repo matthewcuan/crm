@@ -9,13 +9,16 @@
     "typecheck": "npm run typecheck --workspaces",
     "build": "npm run build -w @crm/web",
     "dev": "sst dev",
-    "deploy": "sst deploy --stage production"
+    "deploy": "sst deploy --stage production",
+    "test": "npm run test --workspaces --if-present"
   },
   "devDependencies": {
     "@aws-sdk/client-iam": "^3.1086.0",
     "@aws-sdk/client-lambda": "^3.1086.0",
     "@aws-sdk/client-sts": "^3.1086.0",
+    "aws-sdk-client-mock": "^4.1.0",
     "sst": "^4.17.0",
-    "typescript": "^7.0.2"
+    "typescript": "^7.0.2",
+    "vitest": "^4.1.10"
   }
 }
