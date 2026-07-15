@@ -23,7 +23,7 @@ export default $config({
     const ALLOWED_EMAIL = "owner@example.com"; // SES sender + reminder recipient
     // Everyone who may sign in. NOTE: this is a single-tenant app — every
     // allowed email sees and edits the SAME data.
-    const ALLOWED_EMAILS = [ALLOWED_EMAIL];
+    const ALLOWED_EMAILS = [ALLOWED_EMAIL, "user2@example.com"];
     const TIMEZONE = "America/Los_Angeles"; // used for "due today" boundaries
 
     // Secrets — set once per stage with: npx sst secret set <Name> <value>
