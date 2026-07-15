@@ -15,12 +15,18 @@ import { newId } from "@crm/core/ids";
 import * as interactions from "@crm/core/interactions";
 import * as resumes from "@crm/core/resumes";
 import { TEMPLATES } from "@crm/core/templates";
-import { issueToken, requireAuth, verifyGoogleCredential } from "./auth";
+import {
+  isAllowedEmail,
+  issueToken,
+  requireAuth,
+  verifyGoogleCredential,
+  type AuthEnv,
+} from "./auth";
 import { fetchJobPage, sourceFromUrl } from "./fetch-job";
 import { draftMessage, extractJob, extractResumeProfile } from "./llm";
 
 const s3 = new S3Client({});
-const app = new Hono();
+const app = new Hono<AuthEnv>();
 
 app.onError((err, c) => {
   console.error(err);
@@ -46,34 +52,41 @@ app.post("/auth/google", async (c) => {
   } catch {
     return c.json({ error: "Invalid Google credential" }, 401);
   }
-  if (email !== process.env.ALLOWED_EMAIL) {
+  if (!isAllowedEmail(email)) {
     return c.json({ error: "This Google account is not allowed" }, 403);
   }
   return c.json({ token: await issueToken(email), email });
 });
 
-// Everything below requires a valid session JWT
+// Everything below requires a valid session JWT; requireAuth sets userEmail —
+// the tenant key that scopes every query to the caller's own partition.
 app.use("*", requireAuth);
 
 // ---------- applications ----------
 
-app.get("/applications", async (c) => c.json(await apps.listApplications()));
+app.get("/applications", async (c) =>
+  c.json(await apps.listApplications(c.get("userEmail"))),
+);
 
 app.post("/applications", async (c) => {
   const body = await c.req.json();
   if (!body.company || !body.role) {
     return c.json({ error: "company and role are required" }, 400);
   }
-  return c.json(await apps.createApplication(body), 201);
+  return c.json(await apps.createApplication(c.get("userEmail"), body), 201);
 });
 
 app.get("/applications/:id", async (c) => {
-  const bundle = await apps.getApplicationBundle(c.req.param("id"));
+  const bundle = await apps.getApplicationBundle(
+    c.get("userEmail"),
+    c.req.param("id"),
+  );
   return bundle ? c.json(bundle) : c.json({ error: "Not found" }, 404);
 });
 
 app.patch("/applications/:id", async (c) => {
   const updated = await apps.updateApplication(
+    c.get("userEmail"),
     c.req.param("id"),
     await c.req.json(),
   );
@@ -81,7 +94,7 @@ app.patch("/applications/:id", async (c) => {
 });
 
 app.delete("/applications/:id", async (c) => {
-  await apps.deleteApplication(c.req.param("id"));
+  await apps.deleteApplication(c.get("userEmail"), c.req.param("id"));
   return c.body(null, 204);
 });
 
@@ -92,11 +105,15 @@ app.post("/applications/:id/contacts", async (c) => {
   if (!body.name || !body.type) {
     return c.json({ error: "name and type are required" }, 400);
   }
-  return c.json(await contacts.createContact(c.req.param("id"), body), 201);
+  return c.json(
+    await contacts.createContact(c.get("userEmail"), c.req.param("id"), body),
+    201,
+  );
 });
 
 app.patch("/applications/:id/contacts/:contactId", async (c) => {
   const updated = await contacts.updateContact(
+    c.get("userEmail"),
     c.req.param("id"),
     c.req.param("contactId"),
     await c.req.json(),
@@ -105,7 +122,11 @@ app.patch("/applications/:id/contacts/:contactId", async (c) => {
 });
 
 app.delete("/applications/:id/contacts/:contactId", async (c) => {
-  await contacts.deleteContact(c.req.param("id"), c.req.param("contactId"));
+  await contacts.deleteContact(
+    c.get("userEmail"),
+    c.req.param("id"),
+    c.req.param("contactId"),
+  );
   return c.body(null, 204);
 });
 
@@ -117,13 +138,18 @@ app.post("/applications/:id/interactions", async (c) => {
     return c.json({ error: "body, channel and direction are required" }, 400);
   }
   return c.json(
-    await interactions.createInteraction(c.req.param("id"), body),
+    await interactions.createInteraction(
+      c.get("userEmail"),
+      c.req.param("id"),
+      body,
+    ),
     201,
   );
 });
 
 app.patch("/applications/:id/interactions/:interactionId", async (c) => {
   const updated = await interactions.updateInteraction(
+    c.get("userEmail"),
     c.req.param("id"),
     c.req.param("interactionId"),
     await c.req.json(),
@@ -133,6 +159,7 @@ app.patch("/applications/:id/interactions/:interactionId", async (c) => {
 
 app.delete("/applications/:id/interactions/:interactionId", async (c) => {
   await interactions.deleteInteraction(
+    c.get("userEmail"),
     c.req.param("id"),
     c.req.param("interactionId"),
   );
@@ -145,17 +172,19 @@ app.get("/followups", async (c) => {
   const today =
     c.req.query("today") ??
     todayInTz(process.env.TIMEZONE ?? "America/Los_Angeles");
-  return c.json(await listDueFollowUps(today));
+  return c.json(await listDueFollowUps(c.get("userEmail"), today));
 });
 
 // ---------- resumes ----------
 
-app.get("/resumes", async (c) => c.json(await resumes.listResumes()));
+app.get("/resumes", async (c) =>
+  c.json(await resumes.listResumes(c.get("userEmail"))),
+);
 
 // Browser asks for a presigned URL, PUTs the PDF straight to S3
 app.post("/resumes/upload-url", async (c) => {
   const { fileName } = await c.req.json<{ fileName?: string }>();
-  const key = `resumes/${newId()}.pdf`;
+  const key = `resumes/${c.get("userEmail")}/${newId()}.pdf`;
   const url = await getSignedUrl(
     s3,
     new PutObjectCommand({
@@ -170,6 +199,7 @@ app.post("/resumes/upload-url", async (c) => {
 
 // Create a resume from pasted text OR an uploaded PDF (s3Key)
 app.post("/resumes", async (c) => {
+  const user = c.get("userEmail");
   const body = await c.req.json<{
     label?: string;
     text?: string;
@@ -177,6 +207,10 @@ app.post("/resumes", async (c) => {
     fileName?: string;
   }>();
   if (!body.label) return c.json({ error: "label is required" }, 400);
+  // A presigned key is scoped to its owner — refuse anyone else's object
+  if (body.s3Key && !body.s3Key.startsWith(`resumes/${user}/`)) {
+    return c.json({ error: "Invalid upload key" }, 403);
+  }
 
   let rawText = body.text?.trim() ?? "";
   if (!rawText && body.s3Key) {
@@ -196,7 +230,7 @@ app.post("/resumes", async (c) => {
   }
 
   const profile = await extractResumeProfile(rawText);
-  const resume = await resumes.createResume({
+  const resume = await resumes.createResume(user, {
     label: body.label,
     fileName: body.fileName,
     rawText,
@@ -208,6 +242,7 @@ app.post("/resumes", async (c) => {
 
 app.patch("/resumes/:id", async (c) => {
   const updated = await resumes.updateResume(
+    c.get("userEmail"),
     c.req.param("id"),
     await c.req.json(),
   );
@@ -215,7 +250,7 @@ app.patch("/resumes/:id", async (c) => {
 });
 
 app.delete("/resumes/:id", async (c) => {
-  await resumes.deleteResume(c.req.param("id"));
+  await resumes.deleteResume(c.get("userEmail"), c.req.param("id"));
   return c.body(null, 204);
 });
 
@@ -243,6 +278,7 @@ app.post("/extract/job", async (c) => {
 });
 
 app.post("/draft", async (c) => {
+  const user = c.get("userEmail");
   const body = await c.req.json<{
     applicationId?: string;
     resumeId?: string;
@@ -255,11 +291,11 @@ app.post("/draft", async (c) => {
   const template = TEMPLATES.find((t) => t.key === body.templateKey);
   if (!template) return c.json({ error: "Unknown template" }, 400);
 
-  const bundle = await apps.getApplicationBundle(body.applicationId);
+  const bundle = await apps.getApplicationBundle(user, body.applicationId);
   if (!bundle) return c.json({ error: "Application not found" }, 404);
 
   // Resume priority: explicit choice → application's resume → the default
-  const allResumes = await resumes.listResumes();
+  const allResumes = await resumes.listResumes(user);
   const resume =
     allResumes.find(
       (r) => r.id === (body.resumeId ?? bundle.application.resumeId),

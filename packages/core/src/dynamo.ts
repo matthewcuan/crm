@@ -8,6 +8,12 @@ export const ddb = DynamoDBDocumentClient.from(new DynamoDBClient({}), {
   marshallOptions: { removeUndefinedValues: true },
 });
 
+/** Multi-tenant partition prefix — the owner is baked into every PK, so a
+ *  query for one user's partition structurally cannot return another's data.
+ *  `#` is a safe delimiter (it cannot appear in an email address). */
+export const userPk = (userId: string, suffix: string) =>
+  `USER#${userId}#${suffix}`;
+
 const KEY_ATTRS = ["pk", "sk", "gsi1pk", "gsi1sk", "gsi2pk", "gsi2sk"] as const;
 
 /** Remove key attributes so stored items map back to clean domain objects. */

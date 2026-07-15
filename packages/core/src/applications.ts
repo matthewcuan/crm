@@ -4,7 +4,7 @@ import {
   PutCommand,
   QueryCommand,
 } from "@aws-sdk/lib-dynamodb";
-import { ddb, nullsToUndefined, stripKeys, TABLE } from "./dynamo";
+import { ddb, nullsToUndefined, stripKeys, TABLE, userPk } from "./dynamo";
 import { newId } from "./ids";
 import type {
   Application,
@@ -19,19 +19,21 @@ export type NewApplicationInput = Omit<
   "id" | "status" | "dateSaved"
 > & { status?: Status };
 
-/** Applications live at PK=APP#<id>, SK=#META and are listed via GSI1
- *  (APPLIST / <status>#<dateSaved>) so the board is a single Query. */
-function appItem(app: Application) {
+/** Applications live at PK=USER#<u>#APP#<id>, SK=#META and are listed via
+ *  GSI1 (USER#<u>#APPLIST / <status>#<dateSaved>) so each user's board is a
+ *  single Query scoped to their partition. */
+function appItem(userId: string, app: Application) {
   return {
-    pk: `APP#${app.id}`,
+    pk: userPk(userId, `APP#${app.id}`),
     sk: "#META",
-    gsi1pk: "APPLIST",
+    gsi1pk: userPk(userId, "APPLIST"),
     gsi1sk: `${app.status}#${app.dateSaved}`,
     ...app,
   };
 }
 
 export async function createApplication(
+  userId: string,
   input: NewApplicationInput,
 ): Promise<Application> {
   const now = new Date().toISOString();
@@ -42,17 +44,19 @@ export async function createApplication(
     dateSaved: now,
     updatedAt: now,
   };
-  await ddb.send(new PutCommand({ TableName: TABLE, Item: appItem(app) }));
+  await ddb.send(
+    new PutCommand({ TableName: TABLE, Item: appItem(userId, app) }),
+  );
   return app;
 }
 
-export async function listApplications(): Promise<Application[]> {
+export async function listApplications(userId: string): Promise<Application[]> {
   const res = await ddb.send(
     new QueryCommand({
       TableName: TABLE,
       IndexName: "gsi1",
       KeyConditionExpression: "gsi1pk = :p",
-      ExpressionAttributeValues: { ":p": "APPLIST" },
+      ExpressionAttributeValues: { ":p": userPk(userId, "APPLIST") },
       ScanIndexForward: false,
     }),
   );
@@ -60,10 +64,14 @@ export async function listApplications(): Promise<Application[]> {
 }
 
 export async function getApplicationMeta(
+  userId: string,
   id: string,
 ): Promise<Application | null> {
   const res = await ddb.send(
-    new GetCommand({ TableName: TABLE, Key: { pk: `APP#${id}`, sk: "#META" } }),
+    new GetCommand({
+      TableName: TABLE,
+      Key: { pk: userPk(userId, `APP#${id}`), sk: "#META" },
+    }),
   );
   return res.Item ? stripKeys<Application>(res.Item) : null;
 }
@@ -71,13 +79,14 @@ export async function getApplicationMeta(
 /** One Query returns the application + its contacts + its interactions —
  *  they share a partition, so the detail page needs no joins. */
 export async function getApplicationBundle(
+  userId: string,
   id: string,
 ): Promise<ApplicationBundle | null> {
   const res = await ddb.send(
     new QueryCommand({
       TableName: TABLE,
       KeyConditionExpression: "pk = :p",
-      ExpressionAttributeValues: { ":p": `APP#${id}` },
+      ExpressionAttributeValues: { ":p": userPk(userId, `APP#${id}`) },
     }),
   );
   const items = res.Items ?? [];
@@ -96,10 +105,11 @@ export async function getApplicationBundle(
 }
 
 export async function updateApplication(
+  userId: string,
   id: string,
   patch: Partial<Application>,
 ): Promise<Application | null> {
-  const current = await getApplicationMeta(id);
+  const current = await getApplicationMeta(userId, id);
   if (!current) return null;
   const merged: Application = {
     ...current,
@@ -116,17 +126,22 @@ export async function updateApplication(
   ) {
     merged.dateApplied = new Date().toISOString();
   }
-  await ddb.send(new PutCommand({ TableName: TABLE, Item: appItem(merged) }));
+  await ddb.send(
+    new PutCommand({ TableName: TABLE, Item: appItem(userId, merged) }),
+  );
   return merged;
 }
 
 /** Delete the whole partition: meta + contacts + interactions. */
-export async function deleteApplication(id: string): Promise<void> {
+export async function deleteApplication(
+  userId: string,
+  id: string,
+): Promise<void> {
   const res = await ddb.send(
     new QueryCommand({
       TableName: TABLE,
       KeyConditionExpression: "pk = :p",
-      ExpressionAttributeValues: { ":p": `APP#${id}` },
+      ExpressionAttributeValues: { ":p": userPk(userId, `APP#${id}`) },
       ProjectionExpression: "pk, sk",
     }),
   );

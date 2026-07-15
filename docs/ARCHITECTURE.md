@@ -19,12 +19,20 @@ Everything scales to zero — idle cost is pennies of storage. The stack is
 defined in `sst.config.ts` (SST v4) and deployed with
 `sst deploy --stage production`.
 
-## Auth
+## Auth & tenancy
 
 Google Sign-In in the browser → the API Lambda verifies the ID token against
-Google's JWKS, checks the email is the allowed one, and issues a 30-day HS256
-JWT that the SPA stores and replays on every request. Single-user by
-construction: any other Google account gets a 403.
+Google's JWKS, checks the email against `ALLOWED_EMAILS` (in `sst.config.ts`),
+and issues a 30-day HS256 JWT that the SPA stores and replays on every
+request. Any email not on the allowlist gets a 403 — on sign-in *and* on
+every subsequent API call (removing an email kills existing sessions).
+
+The app is **multi-tenant**: the verified email is the tenant key, baked into
+every DynamoDB partition key (`USER#<email>#...`), so each allowed user gets
+a fully isolated workspace — a query for one user's partition structurally
+cannot return another's data. The frontend knows nothing about this; scoping
+is entirely server-side. Adding a user = add to `ALLOWED_EMAILS` + Google
+test users, deploy, and have them click their SES verification email.
 
 The one CORS subtlety: the API uses a `$default` catch-all route, so API
 Gateway forwards even OPTIONS preflights into the app — they're answered with
@@ -49,14 +57,15 @@ from there.
 
 ## DynamoDB single-table design
 
-One table, two GSIs — every screen is one query:
+One table, two GSIs — every screen is one query, scoped to the caller
+(`U#` below abbreviates the tenant prefix `USER#<email>#`):
 
-| Item        | PK           | SK             | GSI1 (board)              | GSI2 (follow-ups, sparse) |
-|-------------|--------------|----------------|---------------------------|---------------------------|
-| Application | `APP#<id>`   | `#META`        | `APPLIST` / `status#date` | —                         |
-| Contact     | `APP#<id>`   | `CONTACT#<id>` | —                         | —                         |
-| Interaction | `APP#<id>`   | `INT#<ulid>`   | —                         | `FOLLOWUP` / `<dueDate>`  |
-| Resume      | `RESUME`     | `RESUME#<id>`  | —                         | —                         |
+| Item        | PK               | SK             | GSI1 (board)                  | GSI2 (follow-ups, sparse)    |
+|-------------|------------------|----------------|-------------------------------|------------------------------|
+| Application | `U#APP#<id>`     | `#META`        | `U#APPLIST` / `status#date`   | —                            |
+| Contact     | `U#APP#<id>`     | `CONTACT#<id>` | —                             | —                            |
+| Interaction | `U#APP#<id>`     | `INT#<ulid>`   | —                             | `U#FOLLOWUP` / `<dueDate>`   |
+| Resume      | `U#RESUME`       | `RESUME#<id>`  | —                             | —                            |
 
 - Detail page = `Query PK=APP#<id>` — the application, its contacts, and its
   interactions share a partition, so no joins.

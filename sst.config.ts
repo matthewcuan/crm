@@ -20,7 +20,10 @@ export default $config({
     };
   },
   async run() {
-    const ALLOWED_EMAIL = "owner@example.com"; // the only account allowed to sign in
+    const ALLOWED_EMAIL = "owner@example.com"; // SES sender + reminder recipient
+    // Everyone who may sign in. NOTE: this is a single-tenant app — every
+    // allowed email sees and edits the SAME data.
+    const ALLOWED_EMAILS = [ALLOWED_EMAIL];
     const TIMEZONE = "America/Los_Angeles"; // used for "due today" boundaries
 
     // Secrets — set once per stage with: npx sst secret set <Name> <value>
@@ -53,8 +56,16 @@ export default $config({
     // Resume PDF uploads (browser PUTs via presigned URLs)
     const bucket = new sst.aws.Bucket("Resumes");
 
-    // SES sender identity — AWS emails a verification link on first deploy
-    const email = new sst.aws.Email("Email", { sender: ALLOWED_EMAIL });
+    // SES identities: the owner (sender) plus every reminder recipient must
+    // be verified while SES is in sandbox — each address gets a one-time
+    // verification email on first deploy. Index 0 keeps the original "Email"
+    // component name so the existing identity isn't replaced.
+    const emailIdentities = ALLOWED_EMAILS.map(
+      (address, i) =>
+        new sst.aws.Email(i === 0 ? "Email" : `Email${i + 1}`, {
+          sender: address,
+        }),
+    );
 
     const environment = {
       TABLE_NAME: table.name,
@@ -62,7 +73,7 @@ export default $config({
       GOOGLE_CLIENT_ID: googleClientId.value,
       JWT_SECRET: jwtSecret.value,
       ANTHROPIC_API_KEY: anthropicApiKey.value,
-      ALLOWED_EMAIL,
+      ALLOWED_EMAILS: ALLOWED_EMAILS.join(","),
       TIMEZONE,
     };
 
@@ -93,10 +104,11 @@ export default $config({
       schedule: "cron(0 15 * * ? *)",
       function: {
         handler: "packages/functions/src/reminders.handler",
-        link: [table, email],
+        link: [table, ...emailIdentities],
         environment: {
           TABLE_NAME: table.name,
-          ALLOWED_EMAIL,
+          ALLOWED_EMAIL, // sender identity
+          ALLOWED_EMAILS: ALLOWED_EMAILS.join(","), // one digest per user
           TIMEZONE,
           APP_URL: web.url,
         },
@@ -104,6 +116,6 @@ export default $config({
       },
     });
 
-    return { web: web.url, api: api.url };
+    return { web: web.url, api: api.url, table: table.name };
   },
 });

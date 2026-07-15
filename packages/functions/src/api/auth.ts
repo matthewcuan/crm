@@ -1,6 +1,9 @@
 import type { Context, Next } from "hono";
 import { createRemoteJWKSet, jwtVerify, SignJWT } from "jose";
 
+/** Hono env: routes behind requireAuth can read the verified user email. */
+export type AuthEnv = { Variables: { userEmail: string } };
+
 // Google's public signing keys — cached across warm Lambda invocations
 const GOOGLE_JWKS = createRemoteJWKSet(
   new URL("https://www.googleapis.com/oauth2/v3/certs"),
@@ -8,6 +11,15 @@ const GOOGLE_JWKS = createRemoteJWKSet(
 
 const encoder = new TextEncoder();
 const jwtSecret = () => encoder.encode(process.env.JWT_SECRET!);
+
+/** Comma-separated allowlist — every entry shares the same single-tenant data. */
+export function isAllowedEmail(email: unknown): boolean {
+  const allowed = (process.env.ALLOWED_EMAILS ?? "")
+    .split(",")
+    .map((e) => e.trim().toLowerCase())
+    .filter(Boolean);
+  return typeof email === "string" && allowed.includes(email.toLowerCase());
+}
 
 /** Verify a Google Sign-In ID token and return the verified email. */
 export async function verifyGoogleCredential(
@@ -32,16 +44,19 @@ export async function issueToken(email: string): Promise<string> {
     .sign(jwtSecret());
 }
 
-/** Hono middleware: every request must carry a valid JWT for the allowed email. */
-export async function requireAuth(c: Context, next: Next) {
+/** Hono middleware: every request must carry a valid JWT for an allowed
+ *  email. Stashes the lowercased email on the context — it is the tenant key
+ *  that scopes every data-layer call. */
+export async function requireAuth(c: Context<AuthEnv>, next: Next) {
   const header = c.req.header("authorization") ?? "";
   const token = header.startsWith("Bearer ") ? header.slice(7) : null;
   if (!token) return c.json({ error: "Unauthorized" }, 401);
   try {
     const { payload } = await jwtVerify(token, jwtSecret());
-    if (payload.email !== process.env.ALLOWED_EMAIL) {
+    if (!isAllowedEmail(payload.email)) {
       return c.json({ error: "Forbidden" }, 403);
     }
+    c.set("userEmail", String(payload.email).toLowerCase());
   } catch {
     return c.json({ error: "Unauthorized" }, 401);
   }
