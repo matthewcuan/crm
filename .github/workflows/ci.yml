@@ -1,0 +1,32 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Unit tests
+        run: npm test
+
+      - name: Build web bundle
+        run: npm run build -w @crm/web
+        env:
+          # build-time placeholders — real values are baked in by `sst deploy`
+          VITE_API_URL: https://ci-placeholder.example.com
+          VITE_GOOGLE_CLIENT_ID: ci-placeholder
