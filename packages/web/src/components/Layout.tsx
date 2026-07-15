@@ -46,7 +46,9 @@ export function Layout() {
               M
             </button>
           </div>
-          <nav className="flex gap-6 overflow-x-auto">
+          {/* plain flex — three short tabs always fit, and a scroll container
+              here would clip the 1px underline/border overlap */}
+          <nav className="flex gap-6">
             {tabs.map((t) => (
               <NavLink
                 key={t.to}
