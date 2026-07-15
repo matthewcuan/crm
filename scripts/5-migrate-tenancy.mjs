@@ -2,9 +2,9 @@
 // multi-tenant prefix (USER#<email>#...). Idempotent — already-prefixed items
 // are skipped, so re-running is safe.
 //
-// Usage:  node scripts/5-migrate-tenancy.mjs            (dry run)
-//         node scripts/5-migrate-tenancy.mjs --apply    (migrate)
-// Env:    OWNER_EMAIL (default owner@example.com)
+// Usage:  OWNER_EMAIL=you@example.com node scripts/5-migrate-tenancy.mjs            (dry run)
+//         OWNER_EMAIL=you@example.com node scripts/5-migrate-tenancy.mjs --apply    (migrate)
+// Env:    OWNER_EMAIL (required — legacy items become this user's)
 //         TABLE_NAME  (default: read from .sst/outputs.json)
 
 import { readFileSync } from "node:fs";
@@ -16,7 +16,11 @@ import {
   ScanCommand,
 } from "@aws-sdk/lib-dynamodb";
 
-const OWNER = (process.env.OWNER_EMAIL ?? "owner@example.com").toLowerCase();
+const OWNER = process.env.OWNER_EMAIL?.toLowerCase();
+if (!OWNER) {
+  console.error("Set OWNER_EMAIL to the user the legacy items belong to.");
+  process.exit(1);
+}
 const APPLY = process.argv.includes("--apply");
 
 const TABLE =

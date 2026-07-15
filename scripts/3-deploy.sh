@@ -82,19 +82,23 @@ if [ -n "${API_URL:-}" ]; then
 fi
 
 # SES identity status (verified only after you click the link AWS emailed you)
-node -e '
+SENDER=$(npx sst secret list --stage "$STAGE" 2>/dev/null | grep '^AllowedEmails=' | cut -d= -f2- | cut -d, -f1)
+if [ -n "$SENDER" ]; then
+  SENDER="$SENDER" node -e '
 const { SESv2Client, GetEmailIdentityCommand } = require("@aws-sdk/client-sesv2");
-new SESv2Client({}).send(new GetEmailIdentityCommand({ EmailIdentity: "owner@example.com" }))
-  .then(r => console.log(`SES sender verified: ${r.VerifiedForSendingStatus ? "✓ yes" : "✗ NOT YET — click the link in the email AWS sent you"}`))
+new SESv2Client({}).send(new GetEmailIdentityCommand({ EmailIdentity: process.env.SENDER }))
+  .then(r => console.log(`SES sender (${process.env.SENDER}) verified: ${r.VerifiedForSendingStatus ? "✓ yes" : "✗ NOT YET — click the link in the email AWS sent you"}`))
   .catch(e => console.log("SES check skipped:", e.message));
 '
+fi
 
 # ---- 6. remaining manual steps -------------------------------------------------
 cat <<EOF
 
 ── Manual steps that cannot be scripted ──
-1. If SES shows "NOT YET": open owner@example.com, find the AWS
-   "Email Address Verification Request", click the link (check spam).
+1. If SES shows "NOT YET": open the sender's inbox (first AllowedEmails
+   entry), find the AWS "Email Address Verification Request", click the
+   link (check spam).
 2. Google Cloud Console → your OAuth client → Authorized JavaScript
    origins → add: ${WEB_URL:-<the web URL above>}
 3. Open ${WEB_URL:-the web URL} and sign in with Google.
