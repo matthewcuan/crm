@@ -2,7 +2,13 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRef, useState, type PointerEvent } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { STATUSES, type Application, type Status } from "@crm/core/types";
-import { EmptyState, Spinner, StatusDot, StatusPill } from "../components/ui";
+import {
+  EmptyState,
+  Select,
+  Spinner,
+  StatusDot,
+  StatusPill,
+} from "../components/ui";
 import { api } from "../lib/api";
 import { fmtDate, lastTouched } from "../lib/format";
 import { STATUS_LABEL } from "../lib/status";
@@ -246,6 +252,8 @@ export default function Applications() {
                 ))}
               </div>
 
+              {/* phones: collapsible per-status sections */}
+              <div className="md:hidden">
               {sections.map(({ status, items }) => (
                 <section key={status}>
                   <button
@@ -310,6 +318,68 @@ export default function Applications() {
                   )}
                 </section>
               ))}
+              </div>
+
+              {/* desktop: table in pipeline order */}
+              <div className="hidden overflow-hidden rounded-[14px] border border-neutral-800 bg-neutral-900 md:block">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-neutral-800 text-left text-[11px] uppercase tracking-wider text-neutral-500">
+                      <th className="px-4 py-3 font-semibold">Role</th>
+                      <th className="px-4 py-3 font-semibold">Company</th>
+                      <th className="px-4 py-3 font-semibold">Status</th>
+                      <th className="px-4 py-3 font-semibold">Salary</th>
+                      <th className="px-4 py-3 font-semibold">Updated</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-neutral-800">
+                    {sections.flatMap(({ items }) =>
+                      items.map((a) => (
+                        <tr
+                          key={a.id}
+                          className="transition-colors hover:bg-neutral-800/40"
+                        >
+                          <td className="px-4 py-2.5">
+                            <Link
+                              to={`/applications/${a.id}`}
+                              className="font-medium hover:underline"
+                            >
+                              {a.role}
+                            </Link>
+                          </td>
+                          <td className="px-4 py-2.5 text-neutral-400">
+                            {a.company}
+                          </td>
+                          <td className="px-4 py-2.5">
+                            <Select
+                              className="!w-auto !border-transparent !bg-transparent !py-1 !text-xs hover:!border-neutral-700"
+                              value={a.status}
+                              onChange={(e) =>
+                                move.mutate({
+                                  id: a.id,
+                                  status: e.target.value as Status,
+                                })
+                              }
+                            >
+                              {STATUSES.map((s) => (
+                                <option key={s} value={s}>
+                                  {STATUS_LABEL[s]}
+                                </option>
+                              ))}
+                            </Select>
+                          </td>
+                          <td className="px-4 py-2.5 text-neutral-300 tabular-nums">
+                            {a.salary ?? "—"}
+                          </td>
+                          <td className="px-4 py-2.5 text-neutral-500">
+                            {fmtDate(lastTouched(a))}
+                          </td>
+                        </tr>
+                      )),
+                    )}
+                  </tbody>
+                </table>
+              </div>
             </>
           )}
 
