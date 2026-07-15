@@ -1,3 +1,10 @@
+import type { Application } from "@crm/core/types";
+
+/** Most recent activity timestamp — drives feed ordering and date labels. */
+export function lastTouched(a: Application): string {
+  return a.updatedAt ?? a.dateApplied ?? a.dateSaved;
+}
+
 export function fmtDate(iso?: string): string {
   if (!iso) return "—";
   return new Date(iso).toLocaleDateString(undefined, {

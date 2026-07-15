@@ -34,11 +34,13 @@ function appItem(app: Application) {
 export async function createApplication(
   input: NewApplicationInput,
 ): Promise<Application> {
+  const now = new Date().toISOString();
   const app: Application = {
     status: "SAVED",
     ...input,
     id: newId(),
-    dateSaved: new Date().toISOString(),
+    dateSaved: now,
+    updatedAt: now,
   };
   await ddb.send(new PutCommand({ TableName: TABLE, Item: appItem(app) }));
   return app;
@@ -104,6 +106,7 @@ export async function updateApplication(
     ...nullsToUndefined(patch),
     id,
     dateSaved: current.dateSaved,
+    updatedAt: new Date().toISOString(),
   };
   // First move to APPLIED stamps the applied date
   if (

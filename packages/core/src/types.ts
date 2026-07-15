@@ -41,6 +41,7 @@ export interface Application {
   notes?: string;
   dateSaved: string; // ISO datetime
   dateApplied?: string; // ISO datetime
+  updatedAt?: string; // ISO datetime — bumped on every edit (feed recency)
 }
 
 export interface Contact {
