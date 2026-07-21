@@ -67,6 +67,14 @@ Plus two one-time steps for the new user:
    Create identity → their email; they click the link AWS sends) so the
    daily reminder digest can reach them while SES is in sandbox.
 
+Reminder digests go to the `ReminderEmails` secret (comma-separated subset
+of `AllowedEmails`; empty = everyone). To opt a user in/out:
+
+```sh
+npx sst secret set ReminderEmails "owner@gmail.com,new-user@gmail.com" --stage production
+npx sst deploy --stage production
+```
+
 ## Live URLs
 
 Printed at the end of every deploy, also in `.sst/outputs.json`.

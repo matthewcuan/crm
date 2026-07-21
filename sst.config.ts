@@ -33,6 +33,9 @@ export default $config({
     const senderEmail = allowedEmails.value.apply(
       (v) => v.split(",")[0]!.trim().toLowerCase(),
     );
+    // Who gets the daily digest — a comma-separated subset of AllowedEmails.
+    // Empty (the default) means everyone on the allowlist.
+    const reminderEmails = new sst.Secret("ReminderEmails", "");
 
     // Single-table DynamoDB design: base table + 2 GSIs.
     //   gsi1: APPLIST / <status>#<dateSaved>  → list/board of all applications
@@ -104,7 +107,8 @@ export default $config({
         link: [table, email],
         environment: {
           TABLE_NAME: table.name,
-          ALLOWED_EMAILS: allowedEmails.value, // one digest per user; [0] = sender
+          ALLOWED_EMAILS: allowedEmails.value, // [0] = SES sender
+          REMINDER_EMAILS: reminderEmails.value, // digest recipients (empty = all)
           TIMEZONE,
           APP_URL: web.url,
         },

@@ -14,15 +14,24 @@ export async function handler() {
   const today = todayInTz(tz);
   const appUrl = (process.env.APP_URL ?? "").replace(/\/$/, "");
 
-  const users = (process.env.ALLOWED_EMAILS ?? "")
-    .split(",")
-    .map((e) => e.trim().toLowerCase())
-    .filter(Boolean);
-  const sender = users[0]; // first allowlist entry is the verified SES sender
+  const parse = (v: string | undefined) =>
+    (v ?? "")
+      .split(",")
+      .map((e) => e.trim().toLowerCase())
+      .filter(Boolean);
+
+  const allowed = parse(process.env.ALLOWED_EMAILS);
+  const sender = allowed[0]; // first allowlist entry is the verified SES sender
   if (!sender) {
     console.log("No users configured — skipping");
     return;
   }
+  // Recipients: the ReminderEmails subset when set, otherwise everyone.
+  // Filtered against the allowlist so a typo can't mail a stranger.
+  const requested = parse(process.env.REMINDER_EMAILS);
+  const users = requested.length
+    ? requested.filter((u) => allowed.includes(u))
+    : allowed;
 
   for (const user of users) {
     // One user's failure (e.g. an unverified SES recipient) must not throw —
