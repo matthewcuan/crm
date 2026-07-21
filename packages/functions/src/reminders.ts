@@ -25,6 +25,10 @@ export async function handler() {
   }
 
   for (const user of users) {
+    // One user's failure (e.g. an unverified SES recipient) must not throw —
+    // an errored async invocation gets retried by Lambda, re-sending every
+    // email that already went out this run.
+    try {
     const [due, applications] = await Promise.all([
       listDueFollowUps(user, today),
       listApplications(user),
@@ -86,5 +90,8 @@ export async function handler() {
       }),
     );
     console.log(`${user}: sent ${due.length} follow-ups, ${saved.length} saved`);
+    } catch (e) {
+      console.error(`${user}: digest failed —`, e);
+    }
   }
 }
